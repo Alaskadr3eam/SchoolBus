@@ -35,8 +35,23 @@ PlaygroundPage.current.liveView = canvas
 class Bus {
     var driverName: String
     var seats = 20
-    var occupiedSeats = 0
-    
+    var occupiedSeats = 0 {
+        willSet {
+            print("Il y a du mouvement dans le Bus")
+        }
+        didSet {
+            if oldValue < occupiedSeats {
+                print(" \(occupiedSeats - oldValue) personnes viennent de monter")
+            } else {
+                print(" \(oldValue - occupiedSeats) viennent de descendre")
+            }
+        }
+    }
+    var description: String {
+        get {
+            return "Je suis un bus conduit par \(driverName) avec \(occupiedSeats) dedans !"
+        }
+    }
     let numberOfWheel = 4
     
     init(driverName: String) {
@@ -52,37 +67,139 @@ class Bus {
     }
     
     func drive(road: Road) {
-        for _ in road.sections  {
-        moveForward()
+        for _ in road.sections {
+            moveForward()
+        }
+    }
+}
+
+class SchoolBus: Bus {
+    var schoolName = ""
+    
+    override func drive(road: Road) {
+        for section in road.sections {
+            switch section.type {
+            case .plain:
+                moveForward()
+            case .home:
+                if shouldPickChildren() {
+                    pickChildren(from: section)
+                    stop()
+                }
+                moveForward()
+            case .school:
+                dropChildren()
+                stop()
+            }
+        }
+    }
+    
+   private func shouldPickChildren() -> Bool {
+        return occupiedSeats < seats
+    }
+    
+    private func pickChildren(from roadSection: RoadSection) {
+        if let section = roadSection as? HomeRoadSection {
+            occupiedSeats += section.children
+        }
+    }
+    
+    private func dropChildren() {
+        occupiedSeats = 0
+    }
+}
+
+class Road {
+    static let maxLength = 77
+    var sections = [RoadSection]()
+    
+    init(length: Int) {
+        var length = length
+        if length > Road.maxLength {
+            length = Road.maxLength
+        }
+
+        for _ in 0..<length {
+            sections.append(RoadSection(type: .plain))
+        }
+    }
+    
+    static func createStraightRoad() -> Road {
+        return Road(length: 11)
+    }
+    
+    func createRoadToSchool() -> Road {
+        let road = Road(length: 0)
+        for i in 0..<30 {
+        if i%7 == 1 {
+            road.sections.append(HomeRoadSection(children: 2))
+        } else if i%30 == 1 {
+            road.sections.append(SchoolRoadSection())
+        } else {
+            road.sections.append(RoadSection(type: .plain))
+        }
+        }
+        return road
+    }
+    
+
+}
+
+
+class RoadSection {
+    var type: RoadSectionType
+    
+    convenience init() {
+        self.init(type: .plain)
+    }
+    init(type: RoadSectionType) {
+        self.type = type
+        switch type {
+        case .plain:
+            canvas.createRoadSection()
+        case .home:
+            canvas.createHomeRoadSection()
+        case .school:
+            canvas.createSchoolRoadSection()
         }
         
     }
 }
 
-class Road {
-    var sections = [RoadSection]()
+class HomeRoadSection: RoadSection {
+    var children:Int
     
-    init(length: Int) {
-        for length in 0..<length {
-            sections.append(RoadSection()) // self. or not self.?
-            }
-        }
-    
+    convenience init() {
+        self.init(children: 2)
     }
-    
-
-
-class RoadSection {
-    init() {
-        canvas.createRoadSection()
+    init(children: Int) {
+            self.children = children
+        super.init(type: .home)
     }
     
 }
 
-var unBus = Bus(driverName: "jean")
+class SchoolRoadSection: RoadSection {
+    init() {
+        super.init(type: .school)
+    }
+}
+
+enum RoadSectionType {
+    case plain
+    case home
+    case school
+}
+
+var unBus = SchoolBus(driverName: "Jean")
+unBus.seats = 50
+unBus.seats
 unBus.driverName
 
 
+RoadSection(type: .home)
 
+
+unBus.description
 
 
